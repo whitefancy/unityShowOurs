@@ -12,13 +12,16 @@ public class PlayerMovement : MonoBehaviour
     public float turnSpeed = 20f;
     //Create and Store a Rotation 四元数 Quaternion.identity不旋转
     Quaternion m_Rotation = Quaternion.identity;
-
+    public int maxHealth = 5;
+    int currentHealth;
     Rigidbody m_Rigidbody;
+    Vector3 lookDirection = new Vector3(1, 0,0);
     // Start is called before the first frame update
     void Start()
     {
         m_Animator = GetComponent<Animator>();
         m_Rigidbody = GetComponent<Rigidbody>();
+        currentHealth = maxHealth;
     }
 
     // Update is called once per frame
@@ -35,12 +38,30 @@ public class PlayerMovement : MonoBehaviour
         bool isWalking = hasHorizontalInput || hasVerticalInput;
 
         m_Animator.SetBool("IsWalking", isWalking);
+        if (isWalking)
+        {
+            lookDirection.Set(m_Movement.x,m_Movement.y, m_Movement.z);
+        }
         //转向 
         //transform是实例的朝向、位置、旋转角度等基本信息 
         //四个参数 首先是原来的位置，目标位置，然后角度的变化（以弧度为单位），然后是大小的变化。
         //常用Time.deltaTime 因为不受帧率控制
         Vector3 desiredForward = Vector3.RotateTowards(transform.forward, m_Movement, turnSpeed * Time.deltaTime, 0f);
         m_Rotation = Quaternion.LookRotation(desiredForward);
+        if (Input.GetKeyDown(KeyCode.X))
+        {
+            RaycastHit[] hit = Physics.RaycastAll(m_Rigidbody.position + Vector3.up * 0.2f, lookDirection, 1.5f, LayerMask.GetMask("NPC"));
+            if (hit!=null&&hit.Length>0)
+            {
+                NonPlayerCharacter character = hit[0].collider.GetComponent<NonPlayerCharacter>();
+                if (character != null)
+                {
+                    character.DisplayDialog();
+                    UIHealthBar.instance.SetValue(currentHealth / (float)maxHealth);
+                    currentHealth--;
+                }
+            }
+        }
 
     }
     private void OnAnimatorMove()
